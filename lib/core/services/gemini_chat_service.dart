@@ -1,3 +1,4 @@
+import 'package:ai_chat_bot/core/consts/backend_endpoints.dart';
 import 'package:dio/dio.dart';
 
 import '../models/message_model.dart';
@@ -6,7 +7,7 @@ class GeminiChatService {
   GeminiChatService({
     required String apiKey,
     Dio? dio,
-    this.model = 'gemini-3-flash-preview',
+    this.model = BackendEndpoints.aiModel,
   }) : _apiKey = apiKey.trim(),
        _dio = dio ?? Dio() {
     if (_apiKey.isEmpty) {
@@ -48,12 +49,6 @@ class GeminiChatService {
       _messages.remove(userMessage);
       rethrow;
     }
-  }
-
-  // Keeps the spelling used by existing callers while sendMessages remains the
-  // idiomatic public API.
-  Future<MessageModel> sendmessgaes(String text) {
-    return sendMessages(text);
   }
 
   void clearHistory() {
