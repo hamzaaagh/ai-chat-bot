@@ -1,7 +1,33 @@
 import 'package:flutter/material.dart';
 
-class ChatComposer extends StatelessWidget {
-  const ChatComposer({super.key});
+class ChatComposer extends StatefulWidget {
+  const ChatComposer({required this.onSend, this.isLoading = false, super.key});
+
+  final ValueChanged<String> onSend;
+  final bool isLoading;
+
+  @override
+  State<ChatComposer> createState() => _ChatComposerState();
+}
+
+class _ChatComposerState extends State<ChatComposer> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _sendMessage() {
+    final text = _controller.text.trim();
+    if (text.isEmpty || widget.isLoading) {
+      return;
+    }
+
+    widget.onSend(text);
+    _controller.clear();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -12,9 +38,11 @@ class ChatComposer extends StatelessWidget {
         children: [
           Expanded(
             child: TextField(
+              controller: _controller,
               minLines: 1,
               maxLines: 4,
               textInputAction: TextInputAction.newline,
+              onSubmitted: (_) => _sendMessage(),
               decoration: const InputDecoration(
                 hintText: 'Message Luma...',
                 hintStyle: TextStyle(color: Color(0xFF9A949F)),
@@ -34,7 +62,7 @@ class ChatComposer extends StatelessWidget {
             width: 50,
             height: 50,
             child: IconButton.filled(
-              onPressed: null,
+              onPressed: widget.isLoading ? null : _sendMessage,
               tooltip: 'Send message',
               icon: const Icon(Icons.arrow_upward_rounded),
               style: IconButton.styleFrom(

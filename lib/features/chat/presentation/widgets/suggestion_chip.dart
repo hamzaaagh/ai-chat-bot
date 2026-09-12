@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
 
 class SuggestionChip extends StatelessWidget {
-  const SuggestionChip({
-    required this.icon,
-    required this.label,
-    super.key,
-  });
+  const SuggestionChip({required this.icon, required this.label, super.key});
 
   final IconData icon;
   final String label;
@@ -23,9 +19,7 @@ class SuggestionChip extends StatelessWidget {
       ),
       backgroundColor: Colors.white,
       side: const BorderSide(color: Color(0xFFE7E2EF)),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
     );
   }

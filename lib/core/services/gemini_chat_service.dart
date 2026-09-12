@@ -3,9 +3,19 @@ import 'package:dio/dio.dart';
 
 import '../models/message_model.dart';
 
+class GeminiChatException implements Exception {
+  const GeminiChatException(this.message, {this.statusCode});
+
+  final String message;
+  final int? statusCode;
+
+  @override
+  String toString() => message;
+}
+
 class GeminiChatService {
   GeminiChatService({
-    required String apiKey,
+    String apiKey = "AIzaSyCAH0_6wIRpXpwPEfiQLfSLFjXeQaWe7h4",
     Dio? dio,
     this.model = BackendEndpoints.aiModel,
   }) : _apiKey = apiKey.trim(),
@@ -37,7 +47,7 @@ class GeminiChatService {
 
     try {
       final response = await _dio.post<Map<String, dynamic>>(
-        'https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent',
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent',
         queryParameters: {'key': _apiKey},
         data: {'contents': _messages.map((item) => item.toJson()).toList()},
       );
@@ -45,9 +55,15 @@ class GeminiChatService {
       final assistantMessage = _assistantMessageFrom(response.data);
       _messages.add(assistantMessage);
       return assistantMessage;
-    } catch (_) {
+    } on DioException catch (error) {
+      _messages.remove(userMessage);
+      throw _exceptionFromDioError(error);
+    } on GeminiChatException {
       _messages.remove(userMessage);
       rethrow;
+    } on FormatException catch (error) {
+      _messages.remove(userMessage);
+      throw GeminiChatException(error.message);
     }
   }
 
@@ -56,26 +72,99 @@ class GeminiChatService {
   }
 
   MessageModel _assistantMessageFrom(Map<String, dynamic>? data) {
-    final candidates = data?['candidates'];
+    if (data == null) {
+      throw const GeminiChatException('Gemini returned an empty response.');
+    }
+
+    final apiError = data['error'];
+    if (apiError is Map) {
+      throw GeminiChatException(_errorMessage(apiError));
+    }
+
+    final candidates = data['candidates'];
     if (candidates is! List || candidates.isEmpty) {
-      throw const FormatException('Gemini returned no candidates.');
+      final blockReason = (data['promptFeedback'] as Map?)?['blockReason'];
+      if (blockReason is String && blockReason.isNotEmpty) {
+        throw GeminiChatException(
+          'Gemini blocked the request: ${_humanize(blockReason)}.',
+        );
+      }
+      throw const GeminiChatException('Gemini returned no candidates.');
     }
 
     final candidate = candidates.first;
     if (candidate is! Map) {
-      throw const FormatException('Gemini returned an invalid candidate.');
+      throw const GeminiChatException('Gemini returned an invalid candidate.');
     }
 
     final content = candidate['content'];
     if (content is! Map) {
-      throw const FormatException('Gemini returned no response content.');
+      final finishReason = candidate['finishReason'];
+      if (finishReason is String && finishReason.isNotEmpty) {
+        throw GeminiChatException(
+          'Gemini did not return a response: ${_humanize(finishReason)}.',
+        );
+      }
+      throw const GeminiChatException('Gemini returned no response content.');
     }
 
     final message = MessageModel.fromJson(Map<String, dynamic>.from(content));
     if (message.text.isEmpty) {
-      throw const FormatException('Gemini returned an empty response.');
+      throw const GeminiChatException('Gemini returned an empty response.');
     }
 
     return message;
+  }
+
+  GeminiChatException _exceptionFromDioError(DioException error) {
+    final responseData = error.response?.data;
+    if (responseData is Map) {
+      final apiError = responseData['error'];
+      if (apiError is Map) {
+        return GeminiChatException(
+          _errorMessage(apiError),
+          statusCode: error.response?.statusCode,
+        );
+      }
+    }
+
+    final message = switch (error.type) {
+      DioExceptionType.connectionTimeout ||
+      DioExceptionType.sendTimeout ||
+      DioExceptionType.receiveTimeout =>
+        'The request to Gemini timed out. Please try again.',
+      DioExceptionType.connectionError =>
+        'Could not connect to Gemini. Check your internet connection.',
+      _ => 'Gemini request failed. Please try again.',
+    };
+
+    return GeminiChatException(message, statusCode: error.response?.statusCode);
+  }
+
+  String _errorMessage(Map<dynamic, dynamic> error) {
+    final message = error['message'];
+    if (message is String && message.isNotEmpty) {
+      return message;
+    }
+
+    final status = error['status'];
+    if (status is String && status.isNotEmpty) {
+      return 'Gemini request failed: ${_humanize(status)}.';
+    }
+
+    return 'Gemini request failed. Please try again.';
+  }
+
+  String _humanize(String value) {
+    return value
+        .replaceAll('_', ' ')
+        .toLowerCase()
+        .split(' ')
+        .map(
+          (word) => word.isEmpty
+              ? word
+              : '${word[0].toUpperCase()}${word.substring(1)}',
+        )
+        .join(' ');
   }
 }
