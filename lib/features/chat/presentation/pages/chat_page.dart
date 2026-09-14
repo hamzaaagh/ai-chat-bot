@@ -16,7 +16,15 @@ class ChatPage extends StatefulWidget {
   State<ChatPage> createState() => _ChatPageState();
 }
 
-class _ChatPageState extends State<ChatPage> { 
+class _ChatPageState extends State<ChatPage> {
+  final _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
@@ -24,11 +32,17 @@ class _ChatPageState extends State<ChatPage> {
           SendMessageCubit(SendMessageRepositoryImpl(GeminiChatService())),
       child: BlocListener<SendMessageCubit, SendMessageState>(
         listener: (context, state) {
-          if (state case SendMessageFailure(:final message)) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(message)),
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!_scrollController.hasClients) {
+              return;
+            }
+
+            _scrollController.animateTo(
+              _scrollController.position.maxScrollExtent,
+              duration: const Duration(milliseconds: 350),
+              curve: Curves.easeOutCubic,
             );
-          }
+          });
         },
         child: Scaffold(
           appBar: const ChatAppBar(),
@@ -40,6 +54,7 @@ class _ChatPageState extends State<ChatPage> {
                   children: [
                     Expanded(
                       child: ListView(
+                        controller: _scrollController,
                         padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
                         children: [
                           const _WelcomeHeader(),
@@ -48,17 +63,21 @@ class _ChatPageState extends State<ChatPage> {
                             builder: (context, state) {
                               return MessagesListView(
                                 messages: state.messages,
+                                isLoading: state is SendMessageLoading,
+                                failureMessage: state is SendMessageFailure
+                                    ? state.message
+                                    : null,
                               );
                             },
                           ),
                           const SizedBox(height: 28),
                           const Text(
-                          'Try asking',
-                          style: TextStyle(
-                            color: Color(0xFF77727D),
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
+                            'Try asking',
+                            style: TextStyle(
+                              color: Color(0xFF77727D),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                           const SizedBox(height: 12),
                           const Wrap(
@@ -86,9 +105,7 @@ class _ChatPageState extends State<ChatPage> {
                       builder: (context, state) {
                         return ChatComposer(
                           isLoading: state is SendMessageLoading,
-                          onSend: context
-                              .read<SendMessageCubit>()
-                              .sendMessage,
+                          onSend: context.read<SendMessageCubit>().sendMessage,
                         );
                       },
                     ),
