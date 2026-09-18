@@ -33,7 +33,7 @@ class SendMessageCubit extends Cubit<SendMessageState> {
     emit(SendMessageLoading(List.unmodifiable(messages)));
 
     try {
-      final assistantMessage = await _repository.sendMessage(message);
+      final assistantMessage = await _repository.sendMessage(messages);
       final updatedMessages = [...messages, assistantMessage];
       emit(
         SendMessageSuccess(

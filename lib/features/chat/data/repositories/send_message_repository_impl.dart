@@ -8,7 +8,10 @@ class SendMessageRepositoryImpl implements SendMessageRepository {
   final GeminiChatService _chatService;
 
   @override
-  Future<MessageModel> sendMessage(String text) {
-    return _chatService.sendMessages(text);
+  Future<MessageModel> sendMessage(List<MessageModel> messages) {
+    if (messages.length > 20) {
+      messages = messages.sublist(messages.length - 5);
+    }
+    return _chatService.sendMessages(messages);
   }
 }

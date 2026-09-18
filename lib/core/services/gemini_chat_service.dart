@@ -36,15 +36,19 @@ class GeminiChatService {
 
   List<MessageModel> get messages => List.unmodifiable(_messages);
 
-  Future<MessageModel> sendMessages(String text) async {
-    final message = text.trim();
-    if (message.isEmpty) {
-      throw ArgumentError.value(text, 'text', 'A message cannot be empty.');
+  Future<MessageModel> sendMessages(List<MessageModel> messages) async {
+    if (messages.isEmpty) {
+      throw ArgumentError.value(
+        messages,
+        'messages',
+        'At least one message is required.',
+      );
     }
 
-    final userMessage = MessageModel.user(message);
-    _messages.add(userMessage);
-
+    final previousMessages = List<MessageModel>.of(_messages);
+    _messages
+      ..clear()
+      ..addAll(messages);
     try {
       final response = await _dio.post<Map<String, dynamic>>(
         'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent',
@@ -54,15 +58,24 @@ class GeminiChatService {
 
       final assistantMessage = _assistantMessageFrom(response.data);
       _messages.add(assistantMessage);
+      if (_messages.length >= 20) {
+        _messages.sublist(_messages.length - 5);
+      }
       return assistantMessage;
     } on DioException catch (error) {
-      _messages.remove(userMessage);
+      _messages
+        ..clear()
+        ..addAll(previousMessages);
       throw _exceptionFromDioError(error);
     } on GeminiChatException {
-      _messages.remove(userMessage);
+      _messages
+        ..clear()
+        ..addAll(previousMessages);
       rethrow;
     } on FormatException catch (error) {
-      _messages.remove(userMessage);
+      _messages
+        ..clear()
+        ..addAll(previousMessages);
       throw GeminiChatException(error.message);
     }
   }
