@@ -30,12 +30,7 @@ class GeminiChatService {
             'contents': messages.map((message) => message.toJson()).toList(),
           },
         );
-        final candidate =
-            (response.data!['candidates'] as List).first
-                as Map<String, dynamic>;
-        return MessageModel.fromJson(
-          Map<String, dynamic>.from(candidate['content'] as Map),
-        );
+        return MessageModel.fromJson(response.data!);
       } on DioException catch (e) {
         exception = e;
         if (!_isRetryableError(e) || i == 2) rethrow;

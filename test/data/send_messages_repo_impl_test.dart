@@ -18,36 +18,23 @@ void main() {
   group("validation logic in sending message", () {
     test(
       "messages length does not change in case message less than or equal to 20",
-      () async {
-        when(
-          () => chatServiceMock.sendMessages(any()),
-        ).thenAnswer((_) async => getMessageModel());
+      ()  {
+        
         final messages = List.generate(20, (index) => getMessageModel());
-        var result = await repository.sendMessage(messages);
-        var capturedMessages =
-            verify(
-                  () => chatServiceMock.sendMessages(captureAny()),
-                ).captured.first
-                as List<MessageModel>;
+        var result = repository.messagesLengthResponsibiltay(messages);
 
-        expect(capturedMessages.length, equals(messages.length));
+        expect(result.length, equals(messages.length));
       },
     );
     test(
       "messages length reduced to 5 in case message greater than 20",
-      () async {
-        when(
-          () => chatServiceMock.sendMessages(any()),
-        ).thenAnswer((_) async => getMessageModel());
+      ()  {
+      
         final messages = List.generate(30, (index) => getMessageModel());
-        var result = await repository.sendMessage(messages);
-        var capturedMessages =
-            verify(
-                  () => chatServiceMock.sendMessages(captureAny()),
-                ).captured.first
-                as List<MessageModel>;
+        var result =  repository.messagesLengthResponsibiltay(messages);
+        
 
-        expect(capturedMessages.length, equals(5));
+        expect(result.length, equals(5));
       },
     );
   });

@@ -10,6 +10,21 @@ class MessageModel {
   }
 
   factory MessageModel.fromJson(Map<String, dynamic> json) {
+    final candidates = json['candidates'];
+    if (candidates is List) {
+      if (candidates.isEmpty || candidates.first is! Map) {
+        throw const FormatException('Invalid Gemini response format.');
+      }
+
+      final candidate = candidates.first as Map;
+      final content = candidate['content'];
+      if (content is! Map) {
+        throw const FormatException('Invalid Gemini response format.');
+      }
+
+      json = Map<String, dynamic>.from(content);
+    }
+
     final role = json['role'];
     final parts = json['parts'];
 

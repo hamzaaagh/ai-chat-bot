@@ -9,9 +9,14 @@ class SendMessageRepositoryImpl implements SendMessageRepository {
 
   @override
   Future<MessageModel> sendMessage(List<MessageModel> messages) {
-    if (messages.length > 20) {
+    messages = messagesLengthResponsibiltay(messages);
+    return _chatService.sendMessages(messages);
+  }
+  
+  List<MessageModel> messagesLengthResponsibiltay(List<MessageModel> messages) {
+     if (messages.length > 20) {
       messages = messages.sublist(messages.length - 5);
     }
-    return _chatService.sendMessages(messages);
+    return messages;
   }
 }
