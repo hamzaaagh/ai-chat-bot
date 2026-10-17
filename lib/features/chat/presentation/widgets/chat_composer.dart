@@ -38,6 +38,7 @@ class _ChatComposerState extends State<ChatComposer> {
         children: [
           Expanded(
             child: TextField(
+              key: Key("chat_input_text_field"),
               controller: _controller,
               minLines: 1,
               maxLines: 4,
